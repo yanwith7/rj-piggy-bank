@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'none'; media-src 'none'; font-src 'self';">
+    <title>窝头RJの存钱罐</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <img src="../assets/icons/rj.png" alt="窝头RJ" class="brand-rj">
+          <div><b>窝头RJの</b><strong>存钱罐</strong></div>
+        </div>
+        <p class="brand-subtitle">只在这台电脑上的资产记录</p>
+        <nav class="nav" aria-label="主导航">
+          <button class="nav-item is-active" data-page="overview"><span>⌂</span>总览</button>
+          <button class="nav-item" data-page="record"><span>＋</span>记一笔</button>
+          <button class="nav-item" data-page="history"><span>▤</span>历史</button>
+          <button class="nav-item" data-page="analysis"><span>◔</span>分析</button>
+          <button class="nav-item" data-page="manage"><span>⚙</span>管理</button>
+          <button class="nav-item" data-page="data"><span>▣</span>数据与备份</button>
+        </nav>
+        <div class="offline-card">
+          <span class="offline-dot"></span>
+          <div><b>完全离线</b><small>不上传 · 不同步 · 不联网</small></div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p id="page-kicker">本地资产快照</p>
+            <h1 id="page-title">总览</h1>
+          </div>
+          <div class="topbar-actions">
+            <button class="quiet-button" id="quick-export">导出 JSON</button>
+            <button class="primary-button" data-page="record">记一笔</button>
+          </div>
+        </header>
+        <div id="export-warning" class="export-warning is-hidden"></div>
+        <div id="recovery-notice" class="recovery-notice is-hidden"></div>
+        <div id="save-error" class="save-error is-hidden" role="alert"></div>
+        <section id="page-content" class="page-content" aria-live="polite"></section>
+      </main>
+    </div>
+
+    <div id="setup-screen" class="setup-screen is-hidden" role="dialog" aria-modal="true">
+      <section class="setup-card">
+        <img src="../assets/icons/rj.png" alt="" class="setup-rj">
+        <p class="eyebrow">第一次使用</p>
+        <h2>先给存钱罐选个家</h2>
+        <p>选择一个你自己管理的本地文件夹。所有资产数据和备份都会写在那里；卸载或清缓存也不会影响这个文件夹里的数据。</p>
+        <button id="choose-data-folder" class="primary-button large-button">选择数据文件夹</button>
+        <p class="setup-note">不会联网，也不会上传任何内容。</p>
+      </section>
+    </div>
+
+    <div id="modal-root" class="modal-root is-hidden" aria-live="assertive"></div>
+    <div id="toast" class="toast is-hidden" role="status"></div>
+    <script src="renderer.js"></script>
+  </body>
+</html>
