@@ -32,11 +32,11 @@ function defaultData() {
     schemaVersion: 1,
     metadata: { createdAt, updatedAt: createdAt, lastSavedAt: createdAt, lastExportAt: null },
     assetTypes: [
-      { id: 'type-cash', name: '活钱', color: '#43a66b', role: 'asset', sort: 10, archived: false },
-      { id: 'type-stable', name: '稳健', color: '#4d84d9', role: 'asset', sort: 20, archived: false },
-      { id: 'type-fund', name: '基金投资', color: '#e89a3b', role: 'asset', sort: 30, archived: false },
-      { id: 'type-risk', name: '高风险', color: '#db6262', role: 'asset', sort: 40, archived: false },
-      { id: 'type-debt', name: '负债', color: '#7a8191', role: 'debt', sort: 50, archived: false }
+      { id: 'type-cash', name: '活钱', color: '#43a66b', role: 'asset', sort: 10 },
+      { id: 'type-stable', name: '稳健', color: '#4d84d9', role: 'asset', sort: 20 },
+      { id: 'type-fund', name: '基金投资', color: '#e89a3b', role: 'asset', sort: 30 },
+      { id: 'type-risk', name: '高风险', color: '#db6262', role: 'asset', sort: 40 },
+      { id: 'type-debt', name: '负债', color: '#7a8191', role: 'debt', sort: 50 }
     ],
     platforms: [],
     products: [],
@@ -90,8 +90,7 @@ function normalizeData(input) {
       name: safeText(item.name, '资产类型名称', true),
       color: /^#[0-9a-fA-F]{6}$/.test(item.color) ? item.color : '#7a8191',
       role: item.role === 'debt' ? 'debt' : 'asset',
-      sort: Number.isFinite(Number(item.sort)) ? Number(item.sort) : normalized.assetTypes.length * 10,
-      archived: Boolean(item.archived)
+      sort: Number.isFinite(Number(item.sort)) ? Number(item.sort) : normalized.assetTypes.length * 10
     });
   }
   for (const item of source.platforms) {
@@ -102,7 +101,6 @@ function normalizeData(input) {
       name: safeText(item.name, '平台名称', true),
       notes: safeText(item.notes, '平台备注'),
       sort: Number.isFinite(Number(item.sort)) ? Number(item.sort) : normalized.platforms.length * 10,
-      archived: Boolean(item.archived),
       createdAt: typeof item.createdAt === 'string' ? item.createdAt : nowIso(),
       updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : nowIso()
     });
@@ -121,7 +119,6 @@ function normalizeData(input) {
       includeInTotal: item.includeInTotal !== false,
       notes: safeText(item.notes, '产品备注'),
       sort: Number.isFinite(Number(item.sort)) ? Number(item.sort) : normalized.products.length * 10,
-      archived: Boolean(item.archived),
       createdAt: typeof item.createdAt === 'string' ? item.createdAt : nowIso(),
       updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : nowIso()
     });
@@ -160,12 +157,27 @@ function atomicWrite(filePath, content) {
   const temporary = path.join(directory, '.' + path.basename(filePath) + '.' + process.pid + '.' + Date.now() + '.tmp');
   let descriptor;
   try {
-    descriptor = fs.openSync(temporary, 'w', 0o600);
+    descriptor = fs.openSync(temporary, 'wx', 0o600);
     fs.writeFileSync(descriptor, content, 'utf8');
     fs.fsyncSync(descriptor);
     fs.closeSync(descriptor);
     descriptor = null;
-    fs.renameSync(temporary, filePath);
+    // A data file can briefly be held by Finder, antivirus software, or a backup
+    // utility on Windows. Retrying the final rename avoids false "write failed"
+    // messages while still preserving atomic replacement semantics.
+    let renameError = null;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      try {
+        fs.renameSync(temporary, filePath);
+        renameError = null;
+        break;
+      } catch (error) {
+        renameError = error;
+        if (!['EPERM', 'EACCES', 'EBUSY'].includes(error.code) || attempt === 3) break;
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 80 * (attempt + 1));
+      }
+    }
+    if (renameError) throw renameError;
     try {
       const directoryDescriptor = fs.openSync(directory, 'r');
       fs.fsyncSync(directoryDescriptor);
@@ -271,6 +283,20 @@ function persist({ backup = false } = {}) {
   return backup ? writeBackup(data) : null;
 }
 
+function persistChanged(before, { backup = false } = {}) {
+  try {
+    return persist({ backup });
+  } catch (error) {
+    data = before;
+    const code = error && error.code ? '（' + error.code + '）' : '';
+    throw new Error('数据没有保存：无法写入当前数据文件夹' + code + '。请确认文件夹可写、主数据文件没有被其他程序占用，然后重试。');
+  }
+}
+
+function copyData() {
+  return JSON.parse(JSON.stringify(data));
+}
+
 function ensureReady() {
   if (!dataDirectory || !data) throw new Error('请先选择数据文件夹');
 }
@@ -332,6 +358,13 @@ function snapshotRows() {
   });
 }
 
+function recentYearRows() {
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 1);
+  const cutoffDate = cutoff.toISOString().slice(0, 10);
+  return snapshotRows().filter((row) => row.date >= cutoffDate);
+}
+
 function overview() {
   const rows = snapshotRows();
   const current = rows.at(-1) || null;
@@ -389,11 +422,10 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 }
 
-function reportHtml() {
-  const rows = snapshotRows();
+function reportHtml(rows = snapshotRows(), title = '历史记录') {
   const latest = rows.at(-1);
   const history = [...rows].reverse().map((row) => '<tr><td>' + escapeHtml(row.date) + '</td><td>¥' + formatMoney(row.totals.net) + '</td><td>' + (row.change === null ? '—' : (row.change >= 0 ? '+' : '') + '¥' + formatMoney(row.change)) + '</td><td>' + escapeHtml(row.note || '—') + '</td></tr>').join('');
-  return '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>窝头RJの存钱罐报表</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:#252436;padding:32px}h1{color:#ef6f92}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:9px;border-bottom:1px solid #e7dfe6;text-align:left}.card{padding:18px;border:1px solid #f2bfd0;border-radius:12px;background:#fff7fa}.number{font-size:30px;font-weight:800}</style><body><h1>窝头RJの存钱罐</h1><p>本地资产记录报表 · 导出于 ' + escapeHtml(new Date().toLocaleString('zh-CN')) + '</p><section class="card"><p>最新记录：' + escapeHtml(latest ? latest.date : '暂无') + '</p><div class="number">净资产 ¥' + formatMoney(latest ? latest.totals.net : 0) + '</div><p>总资产 ¥' + formatMoney(latest ? latest.totals.assets : 0) + '　总负债 ¥' + formatMoney(latest ? latest.totals.debts : 0) + '</p></section><h2>历史记录</h2><table><thead><tr><th>日期</th><th>净资产</th><th>较上次变化</th><th>备注</th></tr></thead><tbody>' + (history || '<tr><td colspan="4">暂无记录</td></tr>') + '</tbody></table></body></html>';
+  return '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>窝头RJの存钱罐报表</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;color:#252436;padding:32px}h1{color:#ef6f92}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:9px;border-bottom:1px solid #e7dfe6;text-align:left}.card{padding:18px;border:1px solid #f2bfd0;border-radius:12px;background:#fff7fa}.number{font-size:30px;font-weight:800}</style><body><h1>窝头RJの存钱罐</h1><p>本地资产记录报表 · 导出于 ' + escapeHtml(new Date().toLocaleString('zh-CN')) + '</p><section class="card"><p>最新记录：' + escapeHtml(latest ? latest.date : '暂无') + '</p><div class="number">净资产 ¥' + formatMoney(latest ? latest.totals.net : 0) + '</div><p>总资产 ¥' + formatMoney(latest ? latest.totals.assets : 0) + '　总负债 ¥' + formatMoney(latest ? latest.totals.debts : 0) + '</p></section><h2>' + escapeHtml(title) + '</h2><table><thead><tr><th>日期</th><th>净资产</th><th>较上次变化</th><th>备注</th></tr></thead><tbody>' + (history || '<tr><td colspan="4">暂无记录</td></tr>') + '</tbody></table></body></html>';
 }
 
 function registerIpc() {
@@ -409,23 +441,16 @@ function registerIpc() {
   ipcMain.handle('data:save-platform', (_event, payload) => {
     ensureReady();
     const name = safeText(payload.name, '平台名称', true);
+    const before = copyData();
     let item;
     if (payload.id) {
       item = findById(data.platforms, payload.id, '平台');
       item.name = name; item.notes = safeText(payload.notes, '平台备注'); item.updatedAt = nowIso();
     } else {
-      item = { id: newId('platform'), name, notes: safeText(payload.notes, '平台备注'), sort: (Math.max(0, ...data.platforms.map((entry) => entry.sort)) + 10), archived: false, createdAt: nowIso(), updatedAt: nowIso() };
+      item = { id: newId('platform'), name, notes: safeText(payload.notes, '平台备注'), sort: (Math.max(0, ...data.platforms.map((entry) => entry.sort)) + 10), createdAt: nowIso(), updatedAt: nowIso() };
       data.platforms.push(item);
     }
-    persist();
-    return currentState();
-  });
-  ipcMain.handle('data:archive-platform', (_event, id, archived) => {
-    ensureReady();
-    const platform = findById(data.platforms, id, '平台');
-    platform.archived = Boolean(archived); platform.updatedAt = nowIso();
-    if (platform.archived) data.products.filter((product) => product.platformId === id).forEach((product) => { product.archived = true; product.updatedAt = nowIso(); });
-    persist();
+    persistChanged(before);
     return currentState();
   });
   ipcMain.handle('data:save-product', (_event, payload) => {
@@ -433,63 +458,49 @@ function registerIpc() {
     const name = safeText(payload.name, '产品名称', true);
     const platform = findById(data.platforms, payload.platformId, '所属平台');
     const type = findById(data.assetTypes, payload.assetTypeId, '资产类型');
-    if (platform.archived || type.archived) throw new Error('不能添加到已归档的平台或资产类型');
+    const before = copyData();
     let item;
     if (payload.id) {
       item = findById(data.products, payload.id, '产品');
       item.name = name; item.platformId = platform.id; item.assetTypeId = type.id; item.includeInTotal = payload.includeInTotal !== false; item.notes = safeText(payload.notes, '产品备注'); item.updatedAt = nowIso();
     } else {
-      item = { id: newId('product'), name, platformId: platform.id, assetTypeId: type.id, includeInTotal: payload.includeInTotal !== false, notes: safeText(payload.notes, '产品备注'), sort: (Math.max(0, ...data.products.filter((entry) => entry.platformId === platform.id).map((entry) => entry.sort)) + 10), archived: false, createdAt: nowIso(), updatedAt: nowIso() };
+      item = { id: newId('product'), name, platformId: platform.id, assetTypeId: type.id, includeInTotal: payload.includeInTotal !== false, notes: safeText(payload.notes, '产品备注'), sort: (Math.max(0, ...data.products.filter((entry) => entry.platformId === platform.id).map((entry) => entry.sort)) + 10), createdAt: nowIso(), updatedAt: nowIso() };
       data.products.push(item);
     }
-    persist();
-    return currentState();
-  });
-  ipcMain.handle('data:archive-product', (_event, id, archived) => {
-    ensureReady();
-    const product = findById(data.products, id, '产品');
-    if (!archived && findById(data.platforms, product.platformId, '所属平台').archived) throw new Error('请先恢复所属平台，再恢复产品。');
-    product.archived = Boolean(archived); product.updatedAt = nowIso();
-    persist();
+    persistChanged(before);
     return currentState();
   });
   ipcMain.handle('data:save-type', (_event, payload) => {
     ensureReady();
     const name = safeText(payload.name, '资产类型名称', true);
+    const before = copyData();
     let item;
     if (payload.id) {
       item = findById(data.assetTypes, payload.id, '资产类型');
       item.name = name; item.color = /^#[0-9a-fA-F]{6}$/.test(payload.color) ? payload.color : '#7a8191';
     } else {
-      item = { id: newId('type'), name, color: /^#[0-9a-fA-F]{6}$/.test(payload.color) ? payload.color : '#7a8191', role: 'asset', sort: (Math.max(0, ...data.assetTypes.map((entry) => entry.sort)) + 10), archived: false };
+      item = { id: newId('type'), name, color: /^#[0-9a-fA-F]{6}$/.test(payload.color) ? payload.color : '#7a8191', role: 'asset', sort: (Math.max(0, ...data.assetTypes.map((entry) => entry.sort)) + 10) };
       data.assetTypes.push(item);
     }
-    persist();
-    return currentState();
-  });
-  ipcMain.handle('data:archive-type', (_event, id, archived) => {
-    ensureReady();
-    const item = findById(data.assetTypes, id, '资产类型');
-    if (item.role === 'debt' && archived) throw new Error('负债类型不能归档，请先将相关产品调整到其他类型。');
-    if (archived && data.products.some((product) => product.assetTypeId === id && !product.archived)) throw new Error('请先归档或调整使用该类型的产品。');
-    item.archived = Boolean(archived);
-    persist();
+    persistChanged(before);
     return currentState();
   });
   ipcMain.handle('data:delete-type', (_event, id) => {
     ensureReady();
     const item = findById(data.assetTypes, id, '资产类型');
-    if (data.products.some((product) => product.assetTypeId === id)) throw new Error('该类型已经被产品使用。为保护历史记录，请使用归档而不是删除。');
+    if (data.products.some((product) => product.assetTypeId === id)) throw new Error('该类型已经被产品使用。请先把相关产品改到其他类型后再删除。');
+    const before = copyData();
     data.assetTypes = data.assetTypes.filter((entry) => entry.id !== item.id);
-    persist();
+    persistChanged(before);
     return currentState();
   });
   ipcMain.handle('data:move', (_event, collection, id, direction) => {
     ensureReady();
     const map = { platforms: data.platforms, products: data.products, assetTypes: data.assetTypes };
     if (!map[collection] || !['up', 'down'].includes(direction)) throw new Error('排序请求无效');
+    const before = copyData();
     updateSort(map[collection], id, direction);
-    persist();
+    persistChanged(before);
     return currentState();
   });
   ipcMain.handle('data:save-snapshot', (_event, payload) => {
@@ -503,18 +514,20 @@ function registerIpc() {
     }
     const existingIndex = data.snapshots.findIndex((snapshot) => snapshot.date === date);
     if (existingIndex >= 0 && !payload.overwrite) return { needsOverwriteConfirmation: true };
+    const before = copyData();
     const snapshot = { id: existingIndex >= 0 ? data.snapshots[existingIndex].id : newId('snapshot'), date, note: safeText(payload.note, '备注'), values, createdAt: existingIndex >= 0 ? data.snapshots[existingIndex].createdAt : nowIso(), updatedAt: nowIso() };
     if (existingIndex >= 0) data.snapshots.splice(existingIndex, 1, snapshot);
     else data.snapshots.push(snapshot);
-    const backupName = persist({ backup: true });
+    const backupName = persistChanged(before, { backup: true });
     return { ...currentState(), saved: true, backupName };
   });
   ipcMain.handle('data:delete-snapshot', (_event, id) => {
     ensureReady();
     const index = data.snapshots.findIndex((snapshot) => snapshot.id === id);
     if (index < 0) throw new Error('记录不存在');
+    const before = copyData();
     data.snapshots.splice(index, 1);
-    persist({ backup: true });
+    persistChanged(before, { backup: true });
     return currentState();
   });
   ipcMain.handle('data:export-json', async () => {
@@ -525,23 +538,23 @@ function registerIpc() {
     data.metadata.lastExportAt = nowIso(); persist();
     return { filePath: response.filePath, state: currentState() };
   });
-  ipcMain.handle('data:export-csv', async () => {
+  ipcMain.handle('data:export-recent-year-csv', async () => {
     ensureReady();
-    const response = await dialog.showSaveDialog(mainWindow, { title: '导出历史 CSV', defaultPath: '窝头RJ历史_' + localStamp() + '.csv', filters: [{ name: 'CSV 文件', extensions: ['csv'] }] });
+    const response = await dialog.showSaveDialog(mainWindow, { title: '导出近一年历史 CSV', defaultPath: '窝头RJ近一年历史_' + localStamp() + '.csv', filters: [{ name: 'CSV 文件', extensions: ['csv'] }] });
     if (response.canceled || !response.filePath) return { cancelled: true };
     const lines = [['日期', '净资产', '总资产', '总负债', '较上次变化', '变化率', '备注']].map((row) => row.map(csvCell).join(','));
-    for (const row of [...snapshotRows()].reverse()) lines.push([row.date, row.totals.net, row.totals.assets, row.totals.debts, row.change ?? '', row.changeRate ?? '', row.note].map(csvCell).join(','));
+    for (const row of [...recentYearRows()].reverse()) lines.push([row.date, row.totals.net, row.totals.assets, row.totals.debts, row.change ?? '', row.changeRate ?? '', row.note].map(csvCell).join(','));
     atomicWrite(response.filePath, '\ufeff' + lines.join('\r\n'));
     data.metadata.lastExportAt = nowIso(); persist();
     return { filePath: response.filePath, state: currentState() };
   });
-  ipcMain.handle('data:export-pdf', async () => {
+  ipcMain.handle('data:export-recent-year-pdf', async () => {
     ensureReady();
-    const response = await dialog.showSaveDialog(mainWindow, { title: '导出 PDF 报表', defaultPath: '窝头RJ资产报表_' + localStamp() + '.pdf', filters: [{ name: 'PDF 文件', extensions: ['pdf'] }] });
+    const response = await dialog.showSaveDialog(mainWindow, { title: '导出近一年 PDF 报表', defaultPath: '窝头RJ近一年报表_' + localStamp() + '.pdf', filters: [{ name: 'PDF 文件', extensions: ['pdf'] }] });
     if (response.canceled || !response.filePath) return { cancelled: true };
     const printWindow = new BrowserWindow({ show: false, webPreferences: { sandbox: true, contextIsolation: true } });
     try {
-      await printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(reportHtml()));
+      await printWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(reportHtml(recentYearRows(), '近一年历史记录')));
       const pdf = await printWindow.webContents.printToPDF({ printBackground: true, pageSize: 'A4', marginsType: 1 });
       fs.writeFileSync(response.filePath, pdf);
       data.metadata.lastExportAt = nowIso(); persist();
@@ -573,18 +586,20 @@ function registerIpc() {
     ensureReady();
     const sessionEntry = importSessions.get(token);
     if (!sessionEntry || Date.now() - sessionEntry.createdAt > 10 * 60 * 1000) throw new Error('导入预览已过期，请重新选择文件。');
+    const before = copyData();
     writeBackup(data);
     data = sessionEntry.candidate;
-    persist({ backup: true });
+    persistChanged(before, { backup: true });
     importSessions.delete(token);
     return { ...currentState(), imported: true };
   });
   ipcMain.handle('data:clear-all', (_event, phrase) => {
     ensureReady();
     if (phrase !== '确认清空') throw new Error('请输入“确认清空”后再执行。');
+    const before = copyData();
     writeBackup(data);
     data = defaultData();
-    persist({ backup: true });
+    persistChanged(before, { backup: true });
     return { ...currentState(), cleared: true };
   });
 }
