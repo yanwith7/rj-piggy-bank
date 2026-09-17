@@ -323,6 +323,21 @@ function updateSort(items, id, direction) {
   second.sort = previous;
 }
 
+function removeProductsAndHistory(productIds) {
+  const targets = new Set(productIds);
+  let removedValues = 0;
+  data.products = data.products.filter((product) => !targets.has(product.id));
+  for (const snapshot of data.snapshots) {
+    for (const productId of targets) {
+      if (Object.prototype.hasOwnProperty.call(snapshot.values, productId)) {
+        delete snapshot.values[productId];
+        removedValues += 1;
+      }
+    }
+  }
+  return { products: targets.size, historicalValues: removedValues };
+}
+
 function computeSnapshot(snapshot) {
   const products = new Map(data.products.map((item) => [item.id, item]));
   const types = new Map(data.assetTypes.map((item) => [item.id, item]));
@@ -453,6 +468,16 @@ function registerIpc() {
     persistChanged(before);
     return currentState();
   });
+  ipcMain.handle('data:delete-platform', (_event, id) => {
+    ensureReady();
+    const platform = findById(data.platforms, id, '平台');
+    const productIds = data.products.filter((product) => product.platformId === platform.id).map((product) => product.id);
+    const before = copyData();
+    data.platforms = data.platforms.filter((item) => item.id !== platform.id);
+    const deleted = removeProductsAndHistory(productIds);
+    persistChanged(before, { backup: true });
+    return { ...currentState(), deleted };
+  });
   ipcMain.handle('data:save-product', (_event, payload) => {
     ensureReady();
     const name = safeText(payload.name, '产品名称', true);
@@ -469,6 +494,14 @@ function registerIpc() {
     }
     persistChanged(before);
     return currentState();
+  });
+  ipcMain.handle('data:delete-product', (_event, id) => {
+    ensureReady();
+    findById(data.products, id, '产品');
+    const before = copyData();
+    const deleted = removeProductsAndHistory([id]);
+    persistChanged(before, { backup: true });
+    return { ...currentState(), deleted };
   });
   ipcMain.handle('data:save-type', (_event, payload) => {
     ensureReady();
@@ -488,11 +521,12 @@ function registerIpc() {
   ipcMain.handle('data:delete-type', (_event, id) => {
     ensureReady();
     const item = findById(data.assetTypes, id, '资产类型');
-    if (data.products.some((product) => product.assetTypeId === id)) throw new Error('该类型已经被产品使用。请先把相关产品改到其他类型后再删除。');
+    const productIds = data.products.filter((product) => product.assetTypeId === id).map((product) => product.id);
     const before = copyData();
     data.assetTypes = data.assetTypes.filter((entry) => entry.id !== item.id);
-    persistChanged(before);
-    return currentState();
+    const deleted = removeProductsAndHistory(productIds);
+    persistChanged(before, { backup: true });
+    return { ...currentState(), deleted };
   });
   ipcMain.handle('data:move', (_event, collection, id, direction) => {
     ensureReady();
