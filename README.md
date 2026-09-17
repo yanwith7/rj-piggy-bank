@@ -4,14 +4,14 @@
 
 ## 下载与机型选择
 
-请从 [最新正式下载页](https://github.com/yanwith7/rj-piggy-bank/releases/latest) 下载，不要下载 Code 页面里的 Source code ZIP。v0.1.6 起提供可直接打开的 `.dmg` 和 `.exe`，不需要解压。
+请从 [最新正式下载页](https://github.com/yanwith7/rj-piggy-bank/releases/latest) 下载，不要下载 Code 页面里的 Source code ZIP。v0.1.7 起提供可直接打开的 `.dmg` 和 `.exe`，不需要解压。
 
 | 你的电脑 | 下载文件 |
 | --- | --- |
-| Mac（M1 / M2 / M3 / M4 等 Apple 芯片） | [`RJ-Piggy-Bank-0.1.6-mac-arm64.dmg`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.6/RJ-Piggy-Bank-0.1.6-mac-arm64.dmg) |
-| Mac（Intel 芯片） | [`RJ-Piggy-Bank-0.1.6-mac-x64.dmg`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.6/RJ-Piggy-Bank-0.1.6-mac-x64.dmg) |
-| Windows 10 / 11，绝大多数 Intel / AMD 电脑 | [`RJ-Piggy-Bank-0.1.6-Windows-x64.exe`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.6/RJ-Piggy-Bank-0.1.6-Windows-x64.exe) |
-| Windows on ARM（如 Snapdragon） | [`RJ-Piggy-Bank-0.1.6-Windows-arm64.exe`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.6/RJ-Piggy-Bank-0.1.6-Windows-arm64.exe) |
+| Mac（M1 / M2 / M3 / M4 等 Apple 芯片） | [`RJ-Piggy-Bank-0.1.7-mac-arm64.dmg`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.7/RJ-Piggy-Bank-0.1.7-mac-arm64.dmg) |
+| Mac（Intel 芯片） | [`RJ-Piggy-Bank-0.1.7-mac-x64.dmg`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.7/RJ-Piggy-Bank-0.1.7-mac-x64.dmg) |
+| Windows 10 / 11，绝大多数 Intel / AMD 电脑 | [`RJ-Piggy-Bank-0.1.7-Windows-x64.exe`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.7/RJ-Piggy-Bank-0.1.7-Windows-x64.exe) |
+| Windows on ARM（如 Snapdragon） | [`RJ-Piggy-Bank-0.1.7-Windows-arm64.exe`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.7/RJ-Piggy-Bank-0.1.7-Windows-arm64.exe) |
 
 Windows：下载完成后直接双击 `.exe` 即可；无需解压。Mac：打开 `.dmg` 后将 App 拖进“应用程序”。无论选哪一种，首次启动都请把**数据目录**设在自己管理的本地文件夹中。卸载应用不会删除这个文件夹。
 
@@ -48,7 +48,7 @@ macOS 包在公开发布前需要 Apple Developer ID 签名和公证，才能完
 3. **资产类型**：产品需要选择一个类型。内置有活钱、稳健、基金投资、高风险、负债；可以改名称、改颜色、排序，也可以新增未使用的类型。
 4. 每个产品默认「计入总资产」。如果只是想记录但不想让它参与净资产合计，取消这个开关即可。
 
-这里没有“归档”功能：平台、产品和类型会一直保留，避免过去的历史记录出现缺失。若某个产品以后不用了，日常记录时填 `0` 即可；不要删除仍被历史记录使用的类型。
+这里没有“归档”功能。平台、产品和类型右侧都有「删除」按钮；点击后会弹出二次确认，并明确显示会同时移除多少关联产品和历史金额。确认删除前，App 会先生成一份自动备份；如果不确定，先导出完整 JSON。
 
 ### 3. 日常记一笔
 
@@ -98,7 +98,7 @@ macOS 包在公开发布前需要 Apple Developer ID 签名和公证，才能完
 
 ## 功能
 
-- 平台、产品、资产类型的新增、编辑与排序（不使用归档，确保历史记录完整可见）
+- 平台、产品、资产类型的新增、编辑、排序与二次确认删除（删除前自动备份）
 - 按平台分组的“记一笔”；自动带入上一条记录的金额
 - 同日覆盖二次确认，保存快照后自动备份
 - 净资产总览、类型和平台拆分、历史趋势与明细展开
