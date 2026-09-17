@@ -62,7 +62,7 @@ macOS 包在公开发布前需要 Apple Developer ID 签名和公证，才能完
 
     pnpm run dist:win
 
-构建结果在 dist/。仓库已准备好 GitHub Actions 跨平台构建工作流；工作流首次上传需要 GitHub CLI 具备 `workflow` 权限。启用后，推送 `v*` 版本标签会在 macOS 与 Windows 原生构建机上自动产出四种架构的发布附件。macOS 当前会做临时 ad-hoc 签名，避免未签名应用显示“已损坏/被修改”；若要公开分发，仍建议使用 Apple Developer ID 签名并公证。Windows 对外分发也建议配置代码签名证书。
+构建结果在 dist/。当前发布版已经提供四个架构的下载附件。后续若需要用 GitHub Actions 自动构建，创建工作流时 GitHub CLI 需要额外具备 `workflow` 权限。macOS 当前会做临时 ad-hoc 签名，避免未签名应用显示“已损坏/被修改”；若要公开分发，仍建议使用 Apple Developer ID 签名并公证。Windows 对外分发也建议配置代码签名证书。
 
 ## 数据文件格式
 
