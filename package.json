@@ -1,6 +1,6 @@
 {
   "name": "rj-piggy-bank",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "窝头RJの存钱罐 — offline-first local asset snapshot app",
   "main": "src/main.js",
   "author": "yanwith7",
