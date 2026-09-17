@@ -55,7 +55,7 @@
   }
 
   function activeProducts() {
-    return state.data.products.filter((product) => !product.archived && !byId(state.data.platforms).get(product.platformId)?.archived);
+    return state.data.products;
   }
 
   function orderedSnapshots() {
@@ -101,7 +101,7 @@
     const types = byId(state.data.assetTypes);
     const groups = new Map();
     const source = dimension === 'platform' ? state.data.platforms : state.data.assetTypes;
-    for (const entry of source) groups.set(entry.id, { id: entry.id, name: entry.name, color: dimension === 'platform' ? '#d991ab' : entry.color, amount: 0, role: entry.role || 'asset', archived: entry.archived });
+    for (const entry of source) groups.set(entry.id, { id: entry.id, name: entry.name, color: dimension === 'platform' ? '#d991ab' : entry.color, amount: 0, role: entry.role || 'asset' });
     for (const [productId, raw] of Object.entries(snapshot?.values || {})) {
       const product = products.get(productId);
       if (!product || product.includeInTotal === false) continue;
@@ -111,7 +111,7 @@
       const value = Number(raw) || 0;
       group.amount += group.role === 'debt' ? Math.abs(value) : Math.max(0, value);
     }
-    return [...groups.values()].filter((group) => group.amount !== 0 || !group.archived);
+    return [...groups.values()].filter((group) => group.amount !== 0);
   }
 
   function recordNetForPlatform(snapshot, platformId) {
@@ -204,7 +204,7 @@
 
   function recordView() {
     ensureDraft();
-    const platforms = ordered(state.data.platforms).filter((platform) => !platform.archived);
+    const platforms = ordered(state.data.platforms);
     const products = activeProducts();
     const latest = currentRow()?.snapshot;
     const blocks = platforms.map((platform, index) => {
@@ -219,7 +219,7 @@
       return '<details class="platform-block" ' + (index === 0 ? 'open' : '') + '><summary><span class="platform-name">' + esc(platform.name) + '</span><span class="platform-subtotal">小计 <b data-subtotal="' + esc(platform.id) + '">' + money(subtotal) + '</b></span></summary>' + lines + '</details>';
     }).join('');
     const latestText = latest ? '较上次（' + latest.date + '）' : '第一条记录';
-    return '<section class="record-layout"><div class="record-toolbar"><div><h2>把今天的数字存起来</h2><p class="category-meta">输入框已带入上一次金额；归档的产品不会出现在这里。</p></div><div class="record-actions"><button class="quiet-button" data-action="record-carry">全部沿用上次</button><button class="quiet-button" data-action="record-toggle">折叠 / 展开</button></div></div><div class="date-control">记录日期 <input id="record-date" type="date" value="' + esc(recordDraft.date) + '"></div><div id="record-blocks">' + (blocks || '<div class="record-empty">还没有可记录的产品。请先到“管理”添加平台和产品。</div>') + '</div><label class="field"><span>备注（选填）</span><textarea id="record-note" class="record-note" maxlength="120" placeholder="例如：发工资、还信用卡、基金调仓">' + esc(recordDraft.note) + '</textarea></label><div class="record-bottom"><div class="record-total"><small>本次合计（净资产）</small><b id="record-total">' + money(draftTotals().net) + '</b><small id="record-compare">' + esc(latestText) + ' ' + draftCompareText() + '</small></div><button class="primary-button" data-action="save-snapshot">保存本次记录</button></div></section>';
+    return '<section class="record-layout"><div class="record-toolbar"><div><h2>把今天的数字存起来</h2><p class="category-meta">输入框会自动带入上一次金额，只需修改有变化的项目。</p></div><div class="record-actions"><button class="quiet-button" data-action="record-carry">全部沿用上次</button><button class="quiet-button" data-action="record-toggle">折叠 / 展开</button></div></div><div class="date-control">记录日期 <input id="record-date" type="date" value="' + esc(recordDraft.date) + '"></div><div id="record-blocks">' + (blocks || '<div class="record-empty">还没有可记录的产品。请先到“管理”添加平台和产品。</div>') + '</div><label class="field"><span>备注（选填）</span><textarea id="record-note" class="record-note" maxlength="120" placeholder="例如：发工资、还信用卡、基金调仓">' + esc(recordDraft.note) + '</textarea></label><div class="record-bottom"><div class="record-total"><small>本次合计（净资产）</small><b id="record-total">' + money(draftTotals().net) + '</b><small id="record-compare">' + esc(latestText) + ' ' + draftCompareText() + '</small></div><button class="primary-button" data-action="save-snapshot">保存本次记录</button></div></section>';
   }
 
   function draftTotals() {
@@ -269,8 +269,7 @@
       const product = byId(state.data.products).get(productId);
       if (!product) return '';
       const change = Number(amount) - Number(prior?.values?.[productId] ?? 0);
-      const archived = product.archived || platforms.get(product.platformId)?.archived;
-      return '<div class="detail-product"><b>' + esc(product.name) + (archived ? '<span class="archived-tag">已归档</span>' : '') + '</b><small>' + esc(platforms.get(product.platformId)?.name || '未知平台') + ' · ' + esc(types.get(product.assetTypeId)?.name || '未知类型') + '</small><small>' + money(amount) + '　<span class="' + (change >= 0 ? 'positive' : 'negative') + '">' + (change >= 0 ? '+' : '') + money(change) + '</span></small></div>';
+      return '<div class="detail-product"><b>' + esc(product.name) + '</b><small>' + esc(platforms.get(product.platformId)?.name || '未知平台') + ' · ' + esc(types.get(product.assetTypeId)?.name || '未知类型') + '</small><small>' + money(amount) + '　<span class="' + (change >= 0 ? 'positive' : 'negative') + '">' + (change >= 0 ? '+' : '') + money(change) + '</span></small></div>';
     }).join('');
     return '<tr class="history-detail"><td colspan="6"><div class="history-detail-inner"><div class="detail-grid">' + (productCards || '<p class="category-meta">这条记录没有产品金额。</p>') + '</div></div></td></tr>';
   }
@@ -302,35 +301,35 @@
     const typeRows = types.map((item) => manageTypeRow(item)).join('');
     const platformRows = platforms.map((item) => managePlatformRow(item)).join('');
     const productRows = products.map((item) => manageProductRow(item)).join('');
-    return '<section class="manage-sections"><article class="card"><div class="card-heading"><h2>平台</h2><button class="small-button" data-action="add-platform">新增平台</button></div><div class="manage-list">' + (platformRows || '<p class="category-meta">还没有平台</p>') + '</div></article><article class="card"><div class="card-heading"><h2>产品</h2><button class="small-button" data-action="add-product">新增产品</button></div><div class="manage-list">' + (productRows || '<p class="category-meta">先新增平台，再添加产品</p>') + '</div></article><article class="card manage-section types-section"><div class="card-heading"><div><h2>资产类型</h2><small>颜色可改；使用中的类型为保护历史数据只支持归档。</small></div><button class="small-button" data-action="add-type">新增类型</button></div><div class="manage-list">' + typeRows + '</div></article></section>';
+    return '<section class="manage-sections"><article class="card"><div class="card-heading"><div><h2>平台</h2><small>用于分组记录，例如支付宝、微信、银行卡。</small></div><button class="small-button" data-action="add-platform">新增平台</button></div><div class="manage-list">' + (platformRows || '<p class="category-meta">还没有平台</p>') + '</div></article><article class="card"><div class="card-heading"><div><h2>产品</h2><small>会一直保留在记录中，确保历史金额始终完整。</small></div><button class="small-button" data-action="add-product">新增产品</button></div><div class="manage-list">' + (productRows || '<p class="category-meta">先新增平台，再添加产品</p>') + '</div></article><article class="card manage-section types-section"><div class="card-heading"><div><h2>资产类型</h2><small>颜色和名称可改；被产品使用的类型不能删除，以保护历史记录。</small></div><button class="small-button" data-action="add-type">新增类型</button></div><div class="manage-list">' + typeRows + '</div></article></section>';
   }
 
-  function manageButtons(kind, id, archived) {
-    return '<div class="manage-buttons"><button class="icon-button" title="上移" data-action="move" data-collection="' + kind + '" data-id="' + esc(id) + '" data-direction="up">↑</button><button class="icon-button" title="下移" data-action="move" data-collection="' + kind + '" data-id="' + esc(id) + '" data-direction="down">↓</button><button class="small-button" data-action="edit-' + kind.slice(0, -1) + '" data-id="' + esc(id) + '">编辑</button><button class="small-button ' + (archived ? '' : 'danger') + '" data-action="archive-' + kind.slice(0, -1) + '" data-id="' + esc(id) + '" data-archived="' + (!archived) + '">' + (archived ? '恢复' : '归档') + '</button></div>';
+  function manageButtons(kind, id) {
+    return '<div class="manage-buttons"><button class="icon-button" title="上移" data-action="move" data-collection="' + kind + '" data-id="' + esc(id) + '" data-direction="up">↑</button><button class="icon-button" title="下移" data-action="move" data-collection="' + kind + '" data-id="' + esc(id) + '" data-direction="down">↓</button><button class="small-button" data-action="edit-' + kind.slice(0, -1) + '" data-id="' + esc(id) + '">编辑</button></div>';
   }
 
   function managePlatformRow(item) {
     const productCount = state.data.products.filter((product) => product.platformId === item.id).length;
-    return '<div class="manage-row ' + (item.archived ? 'is-archived' : '') + '"><div><h3>' + esc(item.name) + '</h3><p>' + esc(item.notes || (productCount + ' 个产品')) + (item.archived ? ' · 已归档' : '') + '</p></div><div class="manage-buttons"><button class="small-button" data-action="add-product" data-platform-id="' + esc(item.id) + '">加产品</button>' + manageButtons('platforms', item.id, item.archived) + '</div></div>';
+    return '<div class="manage-row"><div><h3>' + esc(item.name) + '</h3><p>' + esc(item.notes || (productCount + ' 个产品')) + '</p></div><div class="manage-buttons"><button class="small-button" data-action="add-product" data-platform-id="' + esc(item.id) + '">加产品</button>' + manageButtons('platforms', item.id) + '</div></div>';
   }
 
   function manageProductRow(item) {
     const platform = byId(state.data.platforms).get(item.platformId);
     const type = byId(state.data.assetTypes).get(item.assetTypeId);
-    return '<div class="manage-row ' + (item.archived ? 'is-archived' : '') + '"><div><h3>' + esc(item.name) + '</h3><p>' + esc(platform?.name || '未知平台') + ' · ' + esc(type?.name || '未知类型') + (item.includeInTotal ? '' : ' · 不计入总资产') + (item.archived ? ' · 已归档' : '') + '</p></div>' + manageButtons('products', item.id, item.archived) + '</div>';
+    return '<div class="manage-row"><div><h3>' + esc(item.name) + '</h3><p>' + esc(platform?.name || '未知平台') + ' · ' + esc(type?.name || '未知类型') + (item.includeInTotal ? '' : ' · 不计入总资产') + '</p></div>' + manageButtons('products', item.id) + '</div>';
   }
 
   function manageTypeRow(item) {
     const used = state.data.products.some((product) => product.assetTypeId === item.id);
     const buttons = used
-      ? manageButtons('assetTypes', item.id, item.archived)
+      ? manageButtons('assetTypes', item.id)
       : '<div class="manage-buttons"><button class="icon-button" title="上移" data-action="move" data-collection="assetTypes" data-id="' + esc(item.id) + '" data-direction="up">↑</button><button class="icon-button" title="下移" data-action="move" data-collection="assetTypes" data-id="' + esc(item.id) + '" data-direction="down">↓</button><button class="small-button" data-action="edit-assetType" data-id="' + esc(item.id) + '">编辑</button><button class="small-button danger" data-action="delete-assetType" data-id="' + esc(item.id) + '">删除</button></div>';
-    return '<div class="manage-row ' + (item.archived ? 'is-archived' : '') + '"><div><h3><i class="type-chip" style="background:' + esc(item.color) + '"></i>' + esc(item.name) + '</h3><p>' + (item.role === 'debt' ? '负债类型' : '资产类型') + (item.archived ? ' · 已归档' : '') + '</p></div>' + buttons + '</div>';
+    return '<div class="manage-row"><div><h3><i class="type-chip" style="background:' + esc(item.color) + '"></i>' + esc(item.name) + '</h3><p>' + (item.role === 'debt' ? '负债类型' : '资产类型') + '</p></div>' + buttons + '</div>';
   }
 
   function dataView() {
     const meta = state.data.metadata;
-    return '<section><div class="data-path-card"><div><h2>数据文件夹</h2><p class="data-path">' + esc(state.dataDirectory) + '</p><p class="category-meta">主文件：' + esc(state.fileName) + '　·　备份会保留在“备份”子文件夹</p></div><button class="quiet-button" data-action="choose-directory">更换文件夹</button></div><div class="data-meta"><div><small>上次保存时间</small><b>' + esc(dateTime(meta.lastSavedAt)) + '</b></div><div><small>自动备份数量</small><b>' + state.backupCount + ' / 30 份</b></div><div><small>上次导出时间</small><b>' + esc(dateTime(meta.lastExportAt)) + '</b></div></div><div class="export-grid"><article class="export-option"><h3>导出 JSON</h3><p>完整数据，适合换电脑、恢复和长期留存。</p><button class="quiet-button" data-action="export-json">导出完整备份</button></article><article class="export-option"><h3>导出 CSV</h3><p>历史记录表格，Excel 可直接打开，中文带 BOM。</p><button class="quiet-button" data-action="export-csv">导出历史 CSV</button></article><article class="export-option"><h3>导出 PDF</h3><p>可打印的总览与历史报表。</p><button class="quiet-button" data-action="export-pdf">导出 PDF 报表</button></article><article class="export-option"><h3>导入恢复</h3><p>先预览 JSON 中的记录数量与最新净资产，再确认覆盖。</p><button class="quiet-button" data-action="preview-import">选择 JSON 文件</button></article></div><article class="card danger-zone"><div class="card-heading"><div><h2>清空所有数据</h2><small>清空前会强制生成一份自动备份；此操作仅清空当前数据文件夹里的主数据。</small></div><button class="danger-button" data-action="open-clear">清空所有数据</button></div></article></section>';
+    return '<section><div class="data-path-card"><div><h2>数据文件夹</h2><p class="data-path">' + esc(state.dataDirectory) + '</p><p class="category-meta">主文件：' + esc(state.fileName) + '　·　备份会保留在“备份”子文件夹</p></div><button class="quiet-button" data-action="choose-directory">更换文件夹</button></div><div class="data-meta"><div><small>上次保存时间</small><b>' + esc(dateTime(meta.lastSavedAt)) + '</b></div><div><small>自动备份数量</small><b>' + state.backupCount + ' / 30 份</b></div><div><small>上次导出时间</small><b>' + esc(dateTime(meta.lastExportAt)) + '</b></div></div><div class="export-grid"><article class="export-option"><h3>导出 JSON</h3><p>完整数据，适合换电脑、恢复和长期留存。</p><button class="quiet-button" data-action="export-json">导出完整备份</button></article><article class="export-option"><h3>导出近一年 CSV</h3><p>仅导出过去 365 天的全部记录，Excel 可直接打开。</p><button class="quiet-button" data-action="export-recent-year-csv">导出近一年 CSV</button></article><article class="export-option"><h3>导出近一年 PDF</h3><p>过去 365 天的可打印资产记录报表。</p><button class="quiet-button" data-action="export-recent-year-pdf">导出近一年 PDF</button></article><article class="export-option"><h3>导入恢复</h3><p>先预览 JSON 中的记录数量与最新净资产，再确认覆盖。</p><button class="quiet-button" data-action="preview-import">选择 JSON 文件</button></article></div><article class="card danger-zone"><div class="card-heading"><div><h2>清空所有数据</h2><small>清空前会强制生成一份自动备份；此操作仅清空当前数据文件夹里的主数据。</small></div><button class="danger-button" data-action="open-clear">清空所有数据</button></div></article></section>';
   }
 
   function showModal(body) {
@@ -352,12 +351,12 @@
   }
 
   function platformForm(item = {}) {
-    showModal('<section class="modal" role="dialog" aria-modal="true"><div class="modal-header"><div><h2>' + (item.id ? '编辑平台' : '新增平台') + '</h2><p>归档的平台不会出现在“记一笔”，历史记录仍会保留。</p></div><button class="icon-button" data-modal-close>×</button></div><form data-form="platform" class="form-grid"><input type="hidden" name="id" value="' + esc(item.id || '') + '"><div class="field"><label>名称 *</label><input name="name" maxlength="120" required value="' + esc(item.name || '') + '" placeholder="例如：支付宝"></div><div class="field"><label>备注</label><textarea name="notes" maxlength="120" placeholder="可选">' + esc(item.notes || '') + '</textarea></div><div class="modal-actions"><button type="button" class="quiet-button" data-modal-close>取消</button><button class="primary-button" type="submit">保存</button></div></form></section>');
+    showModal('<section class="modal" role="dialog" aria-modal="true"><div class="modal-header"><div><h2>' + (item.id ? '编辑平台' : '新增平台') + '</h2><p>平台用于把产品分组，所有内容都会持续保留，确保记录完整。</p></div><button class="icon-button" data-modal-close>×</button></div><form data-form="platform" class="form-grid"><input type="hidden" name="id" value="' + esc(item.id || '') + '"><div class="field"><label>名称 *</label><input name="name" maxlength="120" required value="' + esc(item.name || '') + '" placeholder="例如：支付宝"></div><div class="field"><label>备注</label><textarea name="notes" maxlength="120" placeholder="可选">' + esc(item.notes || '') + '</textarea></div><div class="modal-actions"><button type="button" class="quiet-button" data-modal-close>取消</button><button class="primary-button" type="submit">保存</button></div></form></section>');
   }
 
   function productForm(item = {}, preferredPlatformId = '') {
-    const platforms = ordered(state.data.platforms).filter((platform) => !platform.archived);
-    const types = ordered(state.data.assetTypes).filter((type) => !type.archived);
+    const platforms = ordered(state.data.platforms);
+    const types = ordered(state.data.assetTypes);
     if (!platforms.length || !types.length) return toast('请先准备至少一个可用平台和资产类型。', true);
     const options = (items, selected) => items.map((entry) => '<option value="' + esc(entry.id) + '" ' + ((entry.id === selected) ? 'selected' : '') + '>' + esc(entry.name) + '</option>').join('');
     showModal('<section class="modal" role="dialog" aria-modal="true"><div class="modal-header"><div><h2>' + (item.id ? '编辑产品' : '新增产品') + '</h2><p>产品同时属于一个平台和一个资产类型。</p></div><button class="icon-button" data-modal-close>×</button></div><form data-form="product" class="form-grid"><input type="hidden" name="id" value="' + esc(item.id || '') + '"><div class="field"><label>名称 *</label><input name="name" maxlength="120" required value="' + esc(item.name || '') + '" placeholder="例如：余额宝"></div><div class="field"><label>所属平台 *</label><select name="platformId">' + options(platforms, item.platformId || preferredPlatformId || platforms[0].id) + '</select></div><div class="field"><label>资产类型 *</label><select name="assetTypeId">' + options(types, item.assetTypeId || types[0].id) + '</select></div><label class="checkbox-field"><input name="includeInTotal" type="checkbox" ' + (item.includeInTotal !== false ? 'checked' : '') + '> 计入总资产</label><div class="field"><label>备注</label><textarea name="notes" maxlength="120" placeholder="可选">' + esc(item.notes || '') + '</textarea></div><div class="modal-actions"><button type="button" class="quiet-button" data-modal-close>取消</button><button class="primary-button" type="submit">保存</button></div></form></section>');
@@ -406,17 +405,14 @@
     if (action === 'edit-product') { productForm(byId(state.data.products).get(id)); return; }
     if (action === 'add-type') { typeForm(); return; }
     if (action === 'edit-assetType') { typeForm(byId(state.data.assetTypes).get(id)); return; }
-    if (action === 'archive-platform') { setState(await api.archivePlatform(id, target.dataset.archived === 'true')); toast(target.dataset.archived === 'true' ? '平台已归档。' : '平台已恢复。'); return; }
-    if (action === 'archive-product') { setState(await api.archiveProduct(id, target.dataset.archived === 'true')); toast(target.dataset.archived === 'true' ? '产品已归档。' : '产品已恢复。'); return; }
-    if (action === 'archive-assetType') { setState(await api.archiveType(id, target.dataset.archived === 'true')); toast(target.dataset.archived === 'true' ? '资产类型已归档。' : '资产类型已恢复。'); return; }
     if (action === 'delete-assetType') {
       confirmModal({ title: '删除这个资产类型？', text: '它未被任何产品使用，删除不会影响历史金额。', confirmText: '删除类型', dangerous: true, onConfirm: async () => { setState(await api.deleteType(id)); toast('资产类型已删除。'); } });
       return;
     }
     if (action === 'move') { setState(await api.move(target.dataset.collection, id, target.dataset.direction)); return; }
     if (action === 'choose-directory') { const result = await api.chooseDirectory(); if (!result.cancelled) { setState(result); toast(result.migrated ? '数据已复制到新文件夹，旧文件夹保留原始数据以确保安全。' : '已使用所选数据文件夹。'); } return; }
-    if (action === 'export-json' || action === 'export-csv' || action === 'export-pdf') {
-      const method = action === 'export-json' ? api.exportJson : action === 'export-csv' ? api.exportCsv : api.exportPdf;
+    if (action === 'export-json' || action === 'export-recent-year-csv' || action === 'export-recent-year-pdf') {
+      const method = action === 'export-json' ? api.exportJson : action === 'export-recent-year-csv' ? api.exportRecentYearCsv : api.exportRecentYearPdf;
       const result = await method();
       if (!result.cancelled) { setState(result.state); toast('已导出到：' + result.filePath); }
       return;
