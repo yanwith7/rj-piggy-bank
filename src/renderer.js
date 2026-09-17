@@ -305,7 +305,7 @@
   }
 
   function manageButtons(kind, id) {
-    return '<div class="manage-buttons"><button class="icon-button" title="上移" data-action="move" data-collection="' + kind + '" data-id="' + esc(id) + '" data-direction="up">↑</button><button class="icon-button" title="下移" data-action="move" data-collection="' + kind + '" data-id="' + esc(id) + '" data-direction="down">↓</button><button class="small-button" data-action="edit-' + kind.slice(0, -1) + '" data-id="' + esc(id) + '">编辑</button></div>';
+    return '<div class="manage-buttons"><button class="icon-button" title="上移" data-action="move" data-collection="' + kind + '" data-id="' + esc(id) + '" data-direction="up">↑</button><button class="icon-button" title="下移" data-action="move" data-collection="' + kind + '" data-id="' + esc(id) + '" data-direction="down">↓</button><button class="small-button" data-action="edit-' + kind.slice(0, -1) + '" data-id="' + esc(id) + '">编辑</button><button class="small-button danger" data-action="delete-' + kind.slice(0, -1) + '" data-id="' + esc(id) + '">删除</button></div>';
   }
 
   function managePlatformRow(item) {
@@ -320,11 +320,7 @@
   }
 
   function manageTypeRow(item) {
-    const used = state.data.products.some((product) => product.assetTypeId === item.id);
-    const buttons = used
-      ? manageButtons('assetTypes', item.id)
-      : '<div class="manage-buttons"><button class="icon-button" title="上移" data-action="move" data-collection="assetTypes" data-id="' + esc(item.id) + '" data-direction="up">↑</button><button class="icon-button" title="下移" data-action="move" data-collection="assetTypes" data-id="' + esc(item.id) + '" data-direction="down">↓</button><button class="small-button" data-action="edit-assetType" data-id="' + esc(item.id) + '">编辑</button><button class="small-button danger" data-action="delete-assetType" data-id="' + esc(item.id) + '">删除</button></div>';
-    return '<div class="manage-row"><div><h3><i class="type-chip" style="background:' + esc(item.color) + '"></i>' + esc(item.name) + '</h3><p>' + (item.role === 'debt' ? '负债类型' : '资产类型') + '</p></div>' + buttons + '</div>';
+    return '<div class="manage-row"><div><h3><i class="type-chip" style="background:' + esc(item.color) + '"></i>' + esc(item.name) + '</h3><p>' + (item.role === 'debt' ? '负债类型' : '资产类型') + '</p></div>' + manageButtons('assetTypes', item.id) + '</div>';
   }
 
   function dataView() {
@@ -383,6 +379,40 @@
     toast('已保存，并已生成自动备份：' + result.backupName);
   }
 
+  function confirmDelete(kind, id) {
+    const labels = { platform: '平台', product: '产品', assetType: '资产类型' };
+    let productIds = [];
+    let name = '';
+    if (kind === 'platform') {
+      const item = byId(state.data.platforms).get(id);
+      name = item?.name || '';
+      productIds = state.data.products.filter((product) => product.platformId === id).map((product) => product.id);
+    } else if (kind === 'product') {
+      const item = byId(state.data.products).get(id);
+      name = item?.name || '';
+      productIds = [id];
+    } else {
+      const item = byId(state.data.assetTypes).get(id);
+      name = item?.name || '';
+      productIds = state.data.products.filter((product) => product.assetTypeId === id).map((product) => product.id);
+    }
+    const targetIds = new Set(productIds);
+    const historyValues = state.data.snapshots.reduce((total, snapshot) => total + Object.keys(snapshot.values || {}).filter((productId) => targetIds.has(productId)).length, 0);
+    const related = productIds.length ? '同时删除 ' + productIds.length + ' 个关联产品，以及 ' + historyValues + ' 条历史金额。' : '没有关联产品或历史金额。';
+    const method = kind === 'platform' ? api.deletePlatform : kind === 'product' ? api.deleteProduct : api.deleteType;
+    confirmModal({
+      title: '确认删除' + labels[kind] + '？',
+      text: '“' + name + '”将被永久删除；' + related + ' 删除前会自动备份一次，仍建议先导出完整 JSON。',
+      confirmText: '确认永久删除',
+      dangerous: true,
+      onConfirm: async () => {
+        const result = await method(id);
+        setState(result);
+        toast('已删除' + labels[kind] + '，并已自动备份。');
+      }
+    });
+  }
+
   async function runAction(action, target) {
     const id = target.dataset.id;
     if (action === 'analysis-dimension') { analysisDimension = target.dataset.dimension; page = 'analysis'; render(); return; }
@@ -405,10 +435,9 @@
     if (action === 'edit-product') { productForm(byId(state.data.products).get(id)); return; }
     if (action === 'add-type') { typeForm(); return; }
     if (action === 'edit-assetType') { typeForm(byId(state.data.assetTypes).get(id)); return; }
-    if (action === 'delete-assetType') {
-      confirmModal({ title: '删除这个资产类型？', text: '它未被任何产品使用，删除不会影响历史金额。', confirmText: '删除类型', dangerous: true, onConfirm: async () => { setState(await api.deleteType(id)); toast('资产类型已删除。'); } });
-      return;
-    }
+    if (action === 'delete-platform') { confirmDelete('platform', id); return; }
+    if (action === 'delete-product') { confirmDelete('product', id); return; }
+    if (action === 'delete-assetType') { confirmDelete('assetType', id); return; }
     if (action === 'move') { setState(await api.move(target.dataset.collection, id, target.dataset.direction)); return; }
     if (action === 'choose-directory') { const result = await api.chooseDirectory(); if (!result.cancelled) { setState(result); toast(result.migrated ? '数据已复制到新文件夹，旧文件夹保留原始数据以确保安全。' : '已使用所选数据文件夹。'); } return; }
     if (action === 'export-json' || action === 'export-recent-year-csv' || action === 'export-recent-year-pdf') {
