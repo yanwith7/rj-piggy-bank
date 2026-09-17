@@ -4,16 +4,16 @@
 
 ## 下载与机型选择
 
-请从 GitHub 仓库的 Releases 页面下载，不要下载 Code 页面里的 Source code ZIP。
+请从 [最新正式下载页](https://github.com/yanwith7/rj-piggy-bank/releases/latest) 下载，不要下载 Code 页面里的 Source code ZIP。v0.1.5 起提供可直接打开的 `.dmg` 和 `.exe`，不需要解压。
 
 | 你的电脑 | 下载文件 |
 | --- | --- |
-| Mac（M1 / M2 / M3 / M4 等 Apple 芯片） | `rj-piggy-bank-0.1.0-mac-arm64.dmg` |
-| Mac（Intel 芯片） | `rj-piggy-bank-0.1.0-mac-x64.dmg` |
-| Windows 10 / 11，绝大多数 Intel / AMD 电脑 | `rj-piggy-bank-0.1.0-win-x64.zip` |
-| Windows on ARM（如 Snapdragon） | `rj-piggy-bank-0.1.0-win-arm64.zip` |
+| Mac（M1 / M2 / M3 / M4 等 Apple 芯片） | [`RJ-Piggy-Bank-0.1.5-mac-arm64.dmg`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.5/RJ-Piggy-Bank-0.1.5-mac-arm64.dmg) |
+| Mac（Intel 芯片） | [`RJ-Piggy-Bank-0.1.5-mac-x64.dmg`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.5/RJ-Piggy-Bank-0.1.5-mac-x64.dmg) |
+| Windows 10 / 11，绝大多数 Intel / AMD 电脑 | [`RJ-Piggy-Bank-0.1.5-Windows-x64.exe`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.5/RJ-Piggy-Bank-0.1.5-Windows-x64.exe) |
+| Windows on ARM（如 Snapdragon） | [`RJ-Piggy-Bank-0.1.5-Windows-arm64.exe`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.5/RJ-Piggy-Bank-0.1.5-Windows-arm64.exe) |
 
-Windows ZIP 是免安装版：解压后双击其中的 `窝头RJの存钱罐.exe` 即可。无论选哪一种，首次启动都请把**数据目录**设在自己管理的本地文件夹中。卸载应用不会删除这个文件夹。
+Windows：下载完成后直接双击 `.exe` 即可；无需解压。Mac：打开 `.dmg` 后将 App 拖进“应用程序”。无论选哪一种，首次启动都请把**数据目录**设在自己管理的本地文件夹中。卸载应用不会删除这个文件夹。
 
 macOS 包在公开发布前需要 Apple Developer ID 签名和公证，才能完全避免 Gatekeeper 的首次打开提示；本项目的自动构建会做完整性校验，但不冒充 Apple 公证签名。
 
@@ -62,7 +62,7 @@ macOS 包在公开发布前需要 Apple Developer ID 签名和公证，才能完
 
     pnpm run dist:win
 
-构建结果在 dist/。当前发布版已经提供四个架构的下载附件。后续若需要用 GitHub Actions 自动构建，创建工作流时 GitHub CLI 需要额外具备 `workflow` 权限。macOS 当前会做临时 ad-hoc 签名，避免未签名应用显示“已损坏/被修改”；若要公开分发，仍建议使用 Apple Developer ID 签名并公证。Windows 对外分发也建议配置代码签名证书。
+构建结果在 dist/。当前发布版已经提供 macOS（Apple 芯片 / Intel）和 Windows（x64 / ARM64）的四种直接下载附件。后续若需要用 GitHub Actions 自动构建，创建工作流时 GitHub CLI 需要额外具备 `workflow` 权限。macOS 当前会做临时 ad-hoc 签名，避免未签名应用显示“已损坏/被修改”；若要公开分发，仍建议使用 Apple Developer ID 签名并公证。Windows 对外分发也建议配置代码签名证书。
 
 ## 数据文件格式
 
