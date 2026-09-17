@@ -8,10 +8,10 @@
 
 | 你的电脑 | 下载文件 |
 | --- | --- |
-| Mac（M1 / M2 / M3 / M4 等 Apple 芯片） | `mac-arm64.dmg` |
-| Mac（Intel 芯片） | `mac-x64.dmg` |
-| Windows 10 / 11，绝大多数 Intel / AMD 电脑 | `win-x64.zip` |
-| Windows on ARM（如 Snapdragon） | `win-arm64.zip` |
+| Mac（M1 / M2 / M3 / M4 等 Apple 芯片） | `rj-piggy-bank-0.1.0-mac-arm64.dmg` |
+| Mac（Intel 芯片） | `rj-piggy-bank-0.1.0-mac-x64.dmg` |
+| Windows 10 / 11，绝大多数 Intel / AMD 电脑 | `rj-piggy-bank-0.1.0-win-x64.zip` |
+| Windows on ARM（如 Snapdragon） | `rj-piggy-bank-0.1.0-win-arm64.zip` |
 
 Windows ZIP 是免安装版：解压后双击其中的 `窝头RJの存钱罐.exe` 即可。无论选哪一种，首次启动都请把**数据目录**设在自己管理的本地文件夹中。卸载应用不会删除这个文件夹。
 
