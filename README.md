@@ -4,14 +4,14 @@
 
 ## 下载与机型选择
 
-请从 [最新正式下载页](https://github.com/yanwith7/rj-piggy-bank/releases/latest) 下载，不要下载 Code 页面里的 Source code ZIP。v0.1.5 起提供可直接打开的 `.dmg` 和 `.exe`，不需要解压。
+请从 [最新正式下载页](https://github.com/yanwith7/rj-piggy-bank/releases/latest) 下载，不要下载 Code 页面里的 Source code ZIP。v0.1.6 起提供可直接打开的 `.dmg` 和 `.exe`，不需要解压。
 
 | 你的电脑 | 下载文件 |
 | --- | --- |
-| Mac（M1 / M2 / M3 / M4 等 Apple 芯片） | [`RJ-Piggy-Bank-0.1.5-mac-arm64.dmg`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.5/RJ-Piggy-Bank-0.1.5-mac-arm64.dmg) |
-| Mac（Intel 芯片） | [`RJ-Piggy-Bank-0.1.5-mac-x64.dmg`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.5/RJ-Piggy-Bank-0.1.5-mac-x64.dmg) |
-| Windows 10 / 11，绝大多数 Intel / AMD 电脑 | [`RJ-Piggy-Bank-0.1.5-Windows-x64.exe`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.5/RJ-Piggy-Bank-0.1.5-Windows-x64.exe) |
-| Windows on ARM（如 Snapdragon） | [`RJ-Piggy-Bank-0.1.5-Windows-arm64.exe`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.5/RJ-Piggy-Bank-0.1.5-Windows-arm64.exe) |
+| Mac（M1 / M2 / M3 / M4 等 Apple 芯片） | [`RJ-Piggy-Bank-0.1.6-mac-arm64.dmg`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.6/RJ-Piggy-Bank-0.1.6-mac-arm64.dmg) |
+| Mac（Intel 芯片） | [`RJ-Piggy-Bank-0.1.6-mac-x64.dmg`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.6/RJ-Piggy-Bank-0.1.6-mac-x64.dmg) |
+| Windows 10 / 11，绝大多数 Intel / AMD 电脑 | [`RJ-Piggy-Bank-0.1.6-Windows-x64.exe`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.6/RJ-Piggy-Bank-0.1.6-Windows-x64.exe) |
+| Windows on ARM（如 Snapdragon） | [`RJ-Piggy-Bank-0.1.6-Windows-arm64.exe`](https://github.com/yanwith7/rj-piggy-bank/releases/download/v0.1.6/RJ-Piggy-Bank-0.1.6-Windows-arm64.exe) |
 
 Windows：下载完成后直接双击 `.exe` 即可；无需解压。Mac：打开 `.dmg` 后将 App 拖进“应用程序”。无论选哪一种，首次启动都请把**数据目录**设在自己管理的本地文件夹中。卸载应用不会删除这个文件夹。
 
@@ -30,12 +30,12 @@ macOS 包在公开发布前需要 Apple Developer ID 签名和公证，才能完
 
 ## 功能
 
-- 平台、产品、资产类型的新增、编辑、排序和归档
+- 平台、产品、资产类型的新增、编辑与排序（不使用归档，确保历史记录完整可见）
 - 按平台分组的“记一笔”；自动带入上一条记录的金额
 - 同日覆盖二次确认，保存快照后自动备份
 - 净资产总览、类型和平台拆分、历史趋势与明细展开
 - 平台 / 资产类型 / 流动性多维分析
-- JSON 完整备份、Excel 兼容 CSV、包含总览和历史的 PDF
+- JSON 完整备份，以及可导出过去 365 天全部记录的 Excel 兼容 CSV / PDF
 - 导入 JSON 前预览记录数、平台数、产品数与最新净资产
 - 清空前强制备份并要求输入「确认清空」
 
