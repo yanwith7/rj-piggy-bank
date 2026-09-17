@@ -3,7 +3,9 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 module.exports = async function signMacBundle(context) {
-  if (process.platform !== 'darwin') return;
+  // electron-builder can cross-package Windows targets from macOS. Only sign
+  // an actual macOS app bundle, never a Windows unpacked directory.
+  if (context.electronPlatformName !== 'darwin') return;
   const entry = fs.readdirSync(context.appOutDir, { withFileTypes: true })
     .find((item) => item.isDirectory() && item.name.endsWith('.app'));
   if (!entry) throw new Error('找不到待打包的 macOS 应用。');
